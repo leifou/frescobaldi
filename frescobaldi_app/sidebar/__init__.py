@@ -49,25 +49,32 @@ class SideBarManager(plugin.MainWindowPlugin):
         # there is always one ViewSpace, initialize it
         self.manager().loadSettings()
         self.updateActions()
-    
+
     def manager(self, viewspace=None):
         """Returns the ViewSpaceSideBarManager for the (current) ViewSpace."""
         if viewspace is None:
             viewspace  = self.mainwindow().viewManager.activeViewSpace()
-        return ViewSpaceSideBarManager.instance(viewspace)
-        
+        temp = ViewSpaceSideBarManager.instance(viewspace)
+
+        ###########################################
+        # demo code
+        temp.mainwindow = self.mainwindow()
+        return temp
+        # demo code
+        ###########################################
+
     def toggleLineNumbers(self):
         manager = self.manager()
         manager.setLineNumbersVisible(not manager.lineNumbersVisible())
         manager.saveSettings()
-    
+
     def toggleFolding(self):
         """Toggle folding in the current view."""
         viewspace = self.mainwindow().viewManager.activeViewSpace()
         manager = self.manager(viewspace)
         enable = not manager.foldingVisible()
         document = viewspace.document()
-        
+
         # do it for all managers that display our document
         for m in manager.instances():
             if m.viewSpace().document() is document:
@@ -79,35 +86,35 @@ class SideBarManager(plugin.MainWindowPlugin):
         # unfold the document if disabled
         if not enable:
             self.folder().unfold_all()
-    
+
     def folder(self):
         """Get the Folder for the current document."""
         import folding
         return folding.Folder.get(self.mainwindow().currentDocument())
-    
+
     def foldCurrent(self):
         """Fold current region."""
         self.folder().fold(self.mainwindow().textCursor().block())
-    
+
     def foldTop(self):
         """Fold current region to toplevel."""
         self.folder().fold(self.mainwindow().textCursor().block(), -1)
-    
+
     def unfoldCurrent(self):
         """Unfold current region."""
         block = self.mainwindow().textCursor().block()
         folder = self.folder()
         folder.ensure_visible(block)
-        folder.unfold(block)        
-    
+        folder.unfold(block)
+
     def foldAll(self):
         """Fold the whole document."""
         self.folder().fold_all()
-    
+
     def unfoldAll(self):
         """Unfold the whole document."""
         self.folder().unfold_all()
-        
+
     def updateActions(self):
         manager = self.manager()
         ac = self.actionCollection
@@ -119,7 +126,7 @@ class SideBarManager(plugin.MainWindowPlugin):
         ac.folding_unfold_current.setEnabled(folding)
         ac.folding_fold_all.setEnabled(folding)
         ac.folding_unfold_all.setEnabled(folding)
-    
+
     def newViewSpace(self, viewspace):
         viewmanager = viewspace.manager()
         if viewmanager and viewmanager.window() is self.mainwindow():
@@ -135,8 +142,15 @@ class ViewSpaceSideBarManager(plugin.ViewSpacePlugin):
         self._linenumberarea = None
         self._folding = False
         self._foldingarea = None
+
+        ###########################################
+        # demo code
+        self.mainwindow = None
+        # demo code
+        ###########################################
+
         viewspace.viewChanged.connect(self.updateView)
-        
+
     def loadSettings(self):
         """Loads the settings from config."""
         s = QSettings()
@@ -145,19 +159,19 @@ class ViewSpaceSideBarManager(plugin.ViewSpacePlugin):
         self.setLineNumbersVisible(line_numbers)
         folding = s.value("folding", self._folding, bool)
         self.setFoldingVisible(folding)
-    
+
     def saveSettings(self):
         """Saves the settings to config."""
         s = QSettings()
         s.beginGroup("sidebar")
         s.setValue("line_numbers", self.lineNumbersVisible())
         s.setValue("folding",self.foldingVisible())
-    
+
     def copySettings(self, other):
         """Takes over the settings from another viewspace's manager."""
         self.setLineNumbersVisible(other.lineNumbersVisible())
         self.setFoldingVisible(other.foldingVisible())
-        
+
     def setLineNumbersVisible(self, visible):
         """Set whether line numbers are to be shown."""
         if visible == self._line_numbers:
@@ -168,24 +182,24 @@ class ViewSpaceSideBarManager(plugin.ViewSpacePlugin):
     def lineNumbersVisible(self):
         """Returns whether line numbers are shown."""
         return self._line_numbers
-    
+
     def setFoldingVisible(self, visible):
         """Set whether folding indicators are to be shown."""
         if visible == self._folding:
             return
         self._folding = visible
         self.updateView()
-    
+
     def foldingVisible(self):
         """Return whether folding indicators are to be shown."""
         return self._folding
-    
+
     def updateView(self):
         """Adjust the sidebar in the current View in the sidebar."""
         view = self.viewSpace().activeView()
         if not view:
             return
-        
+
         def add(widget):
             """Adds a widget to the side of the view."""
             from gadgets import borderlayout
@@ -212,6 +226,11 @@ class ViewSpaceSideBarManager(plugin.ViewSpacePlugin):
             if not self._linenumberarea:
                 from widgets import linenumberarea
                 self._linenumberarea = linenumberarea.LineNumberArea()
+                ###########################################
+                # demo code
+                self.mainwindow.connectDiffSignal(self._linenumberarea.updateView)
+                # demo code
+                ###########################################
             add(self._linenumberarea)
             self._linenumberarea.setTextEdit(view)
         elif self._linenumberarea:
@@ -239,7 +258,7 @@ class Actions(actioncollection.ActionCollection):
         self.folding_unfold_current = QAction(parent)
         self.folding_fold_all = QAction(parent)
         self.folding_unfold_all = QAction(parent)
-        
+
     def translateUI(self):
         self.view_linenumbers.setText(_("&Line Numbers"))
         self.folding_enable.setText(_("&Enable Folding"))
@@ -248,5 +267,3 @@ class Actions(actioncollection.ActionCollection):
         self.folding_unfold_current.setText(_("&Unfold Current Region"))
         self.folding_fold_all.setText(_("Fold &All"))
         self.folding_unfold_all.setText(_("U&nfold All"))
-
-

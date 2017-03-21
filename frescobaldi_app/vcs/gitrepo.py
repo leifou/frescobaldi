@@ -30,7 +30,7 @@ from .abstractrepo import AbstractVCSRepo
 
 class GitError(Exception):
     pass
-    
+
 class GitRepo(AbstractVCSRepo):
     """
     Manage a git repository, be it
@@ -42,11 +42,12 @@ class GitRepo(AbstractVCSRepo):
             raise GitError(_("The given directory '{rootdir} "
                              "doesn't seem to be a Git repository.".format(rootdir=root)))
         self.rootDir = root
-    
+
     # #########################
     # Internal helper functions
-    
-    def _run_git_command(self, cmd, args = []): 
+
+    # added gitpath variable to run git in specific directory
+    def _run_git_command(self, cmd, args = [], gitpath = None, encode = True):
         """
         run a git command and return its output
         as a string list.
@@ -54,6 +55,12 @@ class GitRepo(AbstractVCSRepo):
         - cmd is the git command (without 'git')
         - args is a string or a list of strings
         """
+        # #############################################
+        # demo test
+        if gitpath is None:
+            gitpath = self.rootDir
+        # demo code
+        # #############################################
         from PyQt5.QtCore import QSettings
         s = QSettings()
         s.beginGroup("helper_applications")
@@ -61,17 +68,40 @@ class GitRepo(AbstractVCSRepo):
         git_cmd = git_cmd if git_cmd else "git"
         cmd = [git_cmd, cmd]
         cmd.extend(args)
-        pr = subprocess.Popen(cmd, cwd = self.rootDir,
-                              stdout = subprocess.PIPE,
-                              stderr = subprocess.PIPE,
-                              universal_newlines = True)
-        (out, error) = pr.communicate()
-        if error:
-            raise GitError(error)
-        result = out.split('\n')
-        if result[-1] == '':
-            result.pop()
-        return result
+
+        # #############################################
+        # demo code
+        if gitpath == self.rootDir:
+            pr = subprocess.Popen(cmd, cwd = gitpath,
+                                  stdout = subprocess.PIPE,
+                                  stderr = subprocess.PIPE,
+                                  universal_newlines = True)
+            (out, error) = pr.communicate()
+            if error:
+              raise GitError(error)
+            result = out.split('\n')
+            if result[-1] == '':
+                result.pop()
+            return result
+        elif encode:
+            pr = subprocess.Popen(cmd, cwd = gitpath,
+                                  stdout = subprocess.PIPE,
+                                  stderr = subprocess.PIPE,
+                                  universal_newlines = True)
+            (out, error) = pr.communicate()
+            # get output directly
+            return out
+        else:
+            pr = subprocess.Popen(cmd, cwd = gitpath,
+                                  stdout = subprocess.PIPE,
+                                  stderr = subprocess.PIPE)
+            (out, error) = pr.communicate()
+            # get output without encoding.
+            return out
+        # demo code
+        # #############################################
+
+
 
     def _branches(self, local=True):
         """
@@ -106,7 +136,7 @@ class GitRepo(AbstractVCSRepo):
         If local is False also return 'remote' branches.
         """
         return self._branches(local)[0]
-        
+
     def checkout(self, branch):
         """
         Tries to checkout a branch.
@@ -114,7 +144,7 @@ class GitRepo(AbstractVCSRepo):
         return its confirmation message on stderr.
         May raise a GitError exception"""
         self._run_git_command('checkout', ['-q', branch])
-        
+
     def current_branch(self):
         """
         Returns the name of the current branch.
@@ -129,22 +159,22 @@ class GitRepo(AbstractVCSRepo):
         Returns True if the given local branch exists.
         """
         return (branch in self.branches(local=True))
-    
+
     def has_remote(self, remote):
         """Returns True if the given remote name is registered."""
         return remote in self.remotes()
-        
+
     def has_remote_branch(self, branch):
         """
         Return True if the given branch is tracking a remote branch.
         """
         remote, remote_branch = self.tracked_remote(branch)
         return (remote != "local" or remote_branch != "local")
-        
+
     def remotes(self):
         """Return a string list with registered remote names"""
         return self._run_git_command('remote', ['show'])
-        
+
     def tracked_remote(self, branch):
         """
         Return a tuple with the remote and branch tracked by
@@ -167,7 +197,7 @@ class GitRepo(AbstractVCSRepo):
         remote_merge = remote_merge[0]
         remote_branch = remote_merge[remote_merge.rfind('/')+1:]
         return (remote_name, remote_branch)
-    
+
     def tracked_remote_label(self, branch):
         """
         Returns a label for the tracked branch to be used in the GUI.
@@ -185,3 +215,10 @@ class GitRepo(AbstractVCSRepo):
         else:
             return remote + '/' + remote_branch
 
+    # #############################################
+    # demo code
+    def current_diff(self, path = None, origin_file = None, cache_file = None):
+        return self._run_git_command(cmd = "diff", gitpath = path,
+                                     args = ["-U0", "--no-color", "--no-index", origin_file, cache_file])
+    # demo code
+    # #############################################
