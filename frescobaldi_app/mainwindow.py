@@ -61,7 +61,11 @@ import externalchanges
 import browseriface
 import vcs
 import file_import
-
+# ############
+# demo code
+import diffgutter
+# demo code
+# ############
 
 class MainWindow(QMainWindow):
 
@@ -146,7 +150,20 @@ class MainWindow(QMainWindow):
             self.setCurrentDocument(other.currentDocument())
         self.updateWindowTitle()
         app.mainwindowCreated(self)
+        # ########################
+        # demo code
+        self.diffrepeat = diffgutter.GitDiffReaptedTimer(self, 1)
+        # demo code
+        # ########################
+    # ######################
+    # demo code
+    def startDiff(self):
+        self.diffrepeat.start()
 
+    def connectDiffSignal(self, fn):
+        self.diffrepeat.connectSignal(fn)
+    # demo code
+    # ######################
     def documents(self):
         """Returns the list of documents in the order of the TabBar."""
         return self.tabBar.documents()
@@ -300,6 +317,11 @@ class MainWindow(QMainWindow):
         lastWindow = len(app.windows) == 1
         if not lastWindow or self.queryClose():
             self.aboutToClose.emit()
+            # ######################
+            # demo code
+            self.diffrepeat.stop()
+            # demo code
+            # ######################
             if lastWindow:
                 self.writeSettings()
                 self.aboutToCloseLast.emit()
@@ -337,7 +359,6 @@ class MainWindow(QMainWindow):
             else:
                 allow_close = res == QMessageBox.Discard
         return allow_close and engrave.engraver(self).queryCloseDocument(doc)
-    
     def createPopupMenu(self):
         """ Adds an entry to the popup menu to show/hide the tab bar. """
         menu = QMainWindow.createPopupMenu(self)
@@ -529,7 +550,6 @@ class MainWindow(QMainWindow):
                         break
                 else:
                     directory = app.basedir() # default directory to save to
-                
                 import documentinfo
                 import ly.lex
                 filename = os.path.join(directory, documentinfo.defaultfilename(doc))
